@@ -1,0 +1,69 @@
+version: '3'
+
+services:
+  mariadb:
+    container_name: mariadb
+    build:
+      context: ./requirements/mariadb
+      args:
+        - WP_DB_NAME=${WP_DB_NAME}
+        - WP_DB_USER=${WP_DB_USER}
+        - WP_DB_PASSWORD=${WP_DB_PASSWORD}
+        - WP_DB_HOST=${WP_DB_HOST}
+        - SQL_ROOT=${SQL_ROOT}
+        - SQL_ROOT_PWD=${SQL_ROOT_PWD}
+    image: mariadb
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - db:/var/lib/mysql
+    networks:
+      - inception-network
+
+  wordpress:
+    container_name: wordpress
+    depends_on:
+      - mariadb
+    build:
+      context: ./requirements/wordpress
+    image: wordpress
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - wordpress:/var/www/html
+    networks:
+      - inception-network
+
+  nginx:
+    container_name: nginx
+    depends_on:
+      - wordpress
+    build:
+      context: ./requirements/nginx
+    image: nginx
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    volumes:
+      - wordpress:/var/www/html
+    networks:
+      - inception-network
+
+volumes:
+  wordpress:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "$HOME/data/wordpress"
+  db:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "$HOME/data/db"
+
+networks:
+  inception-network:
+    driver: bridge
+      
